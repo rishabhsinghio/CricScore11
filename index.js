@@ -1,45 +1,78 @@
 const request = require('request');
 const TelegramBot = require('node-telegram-bot-api');
+const rapidAPI = require('rapidapi');
 
-const cricketDataApiKey = 'b1455909-c491-4cc5-b6f2-e04330d33810';
+const cricketDataApiKey = '6f370459a0mshe5afcd3f5b0dab5p16b2a4jsn1d89511e7170';
 const telegramBotToken = '6013292650:AAHFqOiI74zPrBsnf5PJTi7cQ2ZJC8riZcc';
-const chatId = '2119695649';
 
-const cricketDataApiUrl = `https://api.cricketdata.org/v1/matches?apiKey=${cricketDataApiKey}`;
+const cricketDataApiUrl = `https://unofficial-cricbuzz.p.rapidapi.com/matches/get-scorecard`;
 const telegramBot = new TelegramBot(telegramBotToken);
 
-const sendMatchDetailsToTelegram = (match) => {
-  if (match.teams.length === 2 && match.teams.some(team => team.id === 'India')) {
-    const matchDetails = `
-      Match: ${match.title}
-      Teams: ${match.teams.join(', ')}
-      Status: ${match.status}
-      Score: ${match.score}
-    `;
-
-    telegramBot.sendMessage(chatId, matchDetails);
-  }
+// Function to send greeting message
+const sendGreetingMessage = (chatId) => {
+  telegramBot.sendMessage(chatId, 'Welcome to the India Cricket Live Scores Bot!');
 };
 
-const handleError = (error) => {
-  console.error(error);
-  telegramBot.sendMessage(chatId, `An error occurred while fetching live match details: ${error.message}`);
+// Function to handle no match found
+const handleNoMatchFound = (chatId) => {
+  telegramBot.sendMessage(chatId, 'No live cricket matches found for India.');
 };
 
-setInterval(() => {
-  request(cricketDataApiUrl, (error, response, body) => {
+// Function to handle match start
+const handleMatchStart = (chatId, match) => {
+  telegramBot.sendMessage(chatId, `🏏 Match started: ${match.title}`);
+};
+
+// Function to update score after 1 over
+const updateScoreAfter1Over = (chatId, match) => {
+  const score = `**Score:** ${match.score}`;
+  telegramBot.sendMessage(chatId, score);
+};
+
+// Function to fetch and send live cricket scores
+const fetchAndSendLiveScores = () => {
+  const options = {
+    uri: cricketDataApiUrl,
+    headers: {
+      'x-rapidapi-key': cricketDataApiKey,
+      'x-rapidapi-host': 'unofficial-cricbuzz.p.rapidapi.com',
+      useJson: true,
+    },
+  };
+
+  request(options, (error, response, body) => {
     if (error) {
-      handleError(error);
+      console.error(error);
       return;
     }
 
-    const matches = JSON.parse(body).data;
+    const matches = body.data;
 
-    if (matches.length > 0) {
-      telegramBot.sendMessage(chatId, `Fetched live match details:`);
-      matches.forEach(sendMatchDetailsToTelegram);
-    } else {
-      telegramBot.sendMessage(chatId, `No live matches found`);
+    if (matches.length === 0) {
+      handleNoMatchFound(chatId);
+      return;
+    }
+
+    const indiaMatch = matches.find((match) => {
+      return match.teams.some((team) => team.id === 'India');
+    });
+
+    if (!indiaMatch) {
+      handleNoMatchFound(chatId);
+      return;
+    }
+
+    if (indiaMatch.status === 'in progress') {
+      updateScoreAfter1Over(chatId, indiaMatch);
+      setInterval(() => updateScoreAfter1Over(chatId, indiaMatch), 60000); // Update score every minute
+    } else if (indiaMatch.status === 'not started') {
+      handleMatchStart(chatId, indiaMatch);
+      setInterval(() => fetchAndSendLiveScores(), 60000); // Check again after a minute
     }
   });
-}, 60000);
+};
+
+// Start the bot and send greeting message
+const chatId = '2119695649'; // Replace with your chat ID
+sendGreetingMessage(chatId);
+fetchAndSendLiveScores();

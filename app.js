@@ -1,19 +1,6 @@
 const axios = require('axios');
 const fetch = require('node-fetch');
 const TelegramBot = require('node-telegram-bot-api');
-const http = require('http');
-const server = http.createServer((req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  
-  res.write('<html><head><title>Node.js HTML</title></head><body>');
-  res.write('<h1>Hello, Node.js!</h1>');
-  res.write('</body></html>');
-
-  res.end();
-});
-
-// Vercel uses the `listen` event for serverless functions
-module.exports = server;
 
 const options = {
   method: 'POST',

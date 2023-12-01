@@ -1,6 +1,20 @@
 import axios from 'axios';
 import fetch from 'node-fetch';
 import TelegramBot from 'node-telegram-bot-api';
+import http from 'http';
+const server = http.createServer((req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  
+  res.write('<html><head><title>Node.js HTML</title></head><body>');
+  res.write('<h1>Hello, Node.js!</h1>');
+  res.write('</body></html>');
+
+  res.end();
+});
+
+// Vercel uses the `listen` event for serverless functions
+module.exports = server;
+
 const options = {
   method: 'POST',
   url: 'https://free-cricket-live-score.p.rapidapi.com/',
